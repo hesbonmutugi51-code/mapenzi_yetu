@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapenzi Yetu 💖</title>
+<style>
+:root{
+  --accent:#ff4458;
+  --bg:#ffeef1;
+  --radius:20px;
+}
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:system-ui,sans-serif;
+}
+
+body{
+  min-height:100vh;
+  background:
+    url('https://thumbs.dreamstime.com/b/light-opaque-pink-hearts-background-3934735.jpg') center/cover repeat,
+    url('https://www.shutterstock.com/image-photo/silhouette-couple-kissing-on-pink-260nw-492631207.jpg') bottom 20px right 20px / 280px auto no-repeat,
+    var(--bg);
+  overflow:visible;
+  position:relative;
+}
+
+/* ====================== CUPID ANIMATION ====================== */
+
+.cupid-fly {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  background: url('https://static.vecteezy.com/system/resources/previews/067/685/363/original/a-cherubic-cupid-with-golden-bow-and-arrow-poised-for-flight-isolated-on-transparent-background-png.png') no-repeat center/contain;
+  top: 18%;
+  left: -20%;
+  z-index: 2;
+  animation: cupidFly 12s infinite ease-in-out;
+}
+
+.arrow {
+  position: absolute;
+  width: 110px;
+  height: 40px;
+  background: url('https://img.icons8.com/color/110/000000/cupid-arrow.png') no-repeat center/contain;
+  top: 35%;
+  left: 10%;
+  opacity: 0;
+  transform: rotate(-15deg);
+  z-index: 3;
+  animation: arrowShoot 12s infinite ease-in-out;
+}
+
+.target-heart {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  background: url('https://img.icons8.com/emoji/130/000000/red-heart.png') no-repeat center/contain;
+  top: 60%;
+  right: -20%;
+  z-index: 2;
+  animation: heartMoveAndBeat 12s infinite ease-in-out;
+}
+
+.sparkles {
+  position: absolute;
+  top: 55%;
+  right: 5%;
+  width: 200px;
+  height: 200px;
+  background: url('https://i.imgur.com/3Z1bK0S.png') no-repeat center/contain;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  animation: sparklesBurst 12s infinite;
+}
+
+@keyframes cupidFly {
+  0% { left: -20%; transform: rotate(0deg); }
+  20% { left: 12%; transform: rotate(8deg); }
+  40% { left: 12%; transform: rotate(-6deg); }
+  60% { left: 12%; transform: rotate(4deg); }
+  80% { left: -20%; transform: rotate(0deg); }
+  100% { left: -20%; }
+}
+
+@keyframes arrowShoot {
+  0%, 38% { opacity: 0; left: 18%; top: 32%; }
+  42% { opacity: 1; left: 20%; top: 32%; }
+  70% { opacity: 1; left: 78%; top: 62%; transform: rotate(25deg); }
+  75% { opacity: 0; transform: rotate(45deg); }
+  100% { opacity: 0; }
+}
+
+@keyframes heartMoveAndBeat {
+  0%, 45% { right: -20%; transform: scale(0.9); }
+  50% { right: 8%; transform: scale(1); }
+  70% { right: 8%; transform: scale(1); }
+  72% { transform: scale(1.6) rotate(10deg); }
+  76% { transform: scale(1.3) rotate(-8deg); }
+  80% { transform: scale(1.4); }
+  85% { transform: scale(1); }
+  95% { right: -20%; transform: scale(0.9); }
+  100% { right: -20%; }
+}
+
+@keyframes sparklesBurst {
+  0%, 70% { opacity: 0; }
+  71% { opacity: 0.9; transform: scale(0.8); }
+  76% { opacity: 0.7; transform: scale(1.2); }
+  85% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ====================== FALLING HEARTS FROM TOP CUPID ====================== */
+
+.cupid {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  background: url('https://img.icons8.com/emoji/96/000000/cupid-emoji.png') no-repeat center/contain;
+  z-index: 1;
+}
+
+.heart {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: url('https://img.icons8.com/emoji/96/000000/heart-suit.png') no-repeat center/contain;
+  pointer-events: none;
+  z-index: 0;
+  animation: fall linear forwards;
+}
+
+@keyframes fall {
+  0% { transform: translate(0,0) rotate(0deg) scale(0.8); opacity:1; }
+  100% { transform: translate(var(--x), var(--y)) rotate(360deg) scale(1.2); opacity:0; }
+}
+
+/* ====================== APP STYLES ====================== */
+
+#app{
+  width:380px;
+  max-width:95vw;
+  max-height:90vh;
+  background:white;
+  border-radius:var(--radius);
+  box-shadow:0 15px 40px rgba(0,0,0,.2);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  position: relative;
+  z-index: 10;
+  margin:50px auto;
+}
+
+header{
+  background:linear-gradient(135deg,#ff4458,#ff7a8a);
+  color:white;
+  text-align:center;
+  padding:18px;
+  font-size:1.4rem;
+  font-weight:800;
+  text-shadow:0 0 6px #fff;
+}
+
+.section{
+  padding:22px;
+  display:none;
+  flex-direction:column;
+  flex:1;
+  overflow-y:auto;
+}
+
+.section.active{
+  display:flex;
+}
+
+label{
+  display:block;
+  background:var(--accent);
+  color:white;
+  padding:10px;
+  border-radius:25px;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:12px;
+}
+
+input,textarea{
+  width:100%;
+  padding:10px;
+  margin-top:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:1rem;
+}
+
+#preview{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+  margin:16px 0;
+  border-radius:var(--radius);
+  background:#eee;
+  display:none;
+}
+
+button{
+  width:100%;
+  margin-top:16px;
+  padding:12px;
+  background:var(--accent);
+  color:white;
+  border:none;
+  border-radius:30px;
+  font-size:1.05rem;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+.warning{
+  color:red;
+  margin-top:6px;
+  font-size:0.9rem;
+}
+
+#questionCounter{
+  font-weight:600;
+  text-align:center;
+  margin-bottom:6px;
+}
+
+#progressWrap{
+  height:8px;
+  background:#eee;
+  border-radius:20px;
+  overflow:hidden;
+  margin-bottom:15px;
+}
+
+#progressBar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#ff4458,#ff7a8a);
+  transition:width .4s ease;
+}
+
+.option{
+  background:#f2f2f2;
+  padding:12px;
+  margin:8px 0;
+  border-radius:14px;
+  cursor:pointer;
+  transition:background .2s;
+}
+
+.option.selected{
+  background:var(--accent);
+  color:white;
+}
+</style>
+</head>
+<body>
+
+  <!-- Flying Cupid shooting arrow animation -->
+  <div class="cupid-fly"></div>
+  <div class="arrow"></div>
+  <div class="target-heart"></div>
+  <div class="sparkles"></div>
+
+  <!-- Static Cupid at top shooting falling hearts -->
+  <div class="cupid"></div>
+
+  <!-- Audio elements (hidden) -->
+  <audio id="shootSound" src="https://www.soundjay.com/misc/sounds/magic-chime-01.mp3" preload="auto"></audio>
+  <audio id="whooshSound" src="https://www.soundjay.com/misc/sounds/magic-chime-03.mp3" preload="auto"></audio>
+  <audio id="impactSound" src="https://www.soundjay.com/misc/sounds/magic-chime-05.mp3" preload="auto"></audio>
+  <audio id="sparkleSound" src="https://www.soundjay.com/misc/sounds/magic-chime-04.mp3" preload="auto"></audio>
+
+  <!-- Main App -->
+  <div id="app">
+    <header>Mapenzi Yetu 💘</header>
+
+    <!-- SETUP -->
+    <div id="setup" class="section active">
+      <label>
+        📷 Choose / Take Selfie
+        <input type="file" id="photoInput" accept="image/*" capture="user" hidden>
+      </label>
+      <img id="preview">
+
+      <input type="number" id="ageInput" placeholder="Enter your age (18+)" min="18">
+      <div id="ageWarning" class="warning"></div>
+
+      <textarea id="bioInput" rows="3" placeholder="Tell us a little about yourself ❤️"></textarea>
+
+      <button id="startBtn">Start Matching ❤️</button>
+    </div>
+
+    <!-- QUESTIONS -->
+    <div id="questions" class="section">
+      <div id="questionCounter"></div>
+      <div id="progressWrap"><div id="progressBar"></div></div>
+      <h3 id="questionText" style="margin-bottom:20px;"></h3>
+      <div id="options"></div>
+      <button id="nextBtn" disabled>Next ❤️</button>
+    </div>
+
+    <!-- WAITING -->
+    <div id="waiting" class="section">
+      <p style="text-align:center;font-size:1.3rem;flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+        Finding your perfect match… 💕<br>
+        <span style="font-size:1rem;color:#777;">This might take a moment</span>
+      </p>
+    </div>
+  </div>
+
+<script>
+// App logic (unchanged)
+const setup = document.getElementById("setup");
+const questionsSec = document.getElementById("questions");
+const waiting = document.getElementById("waiting");
+const photoInput = document.getElementById("photoInput");
+const preview = document.getElementById("preview");
+const ageInput = document.getElementById("ageInput");
+const ageWarning = document.getElementById("ageWarning");
+const bioInput = document.getElementById("bioInput");
+const startBtn = document.getElementById("startBtn");
+const questionText = document.getElementById("questionText");
+const optionsDiv = document.getElementById("options");
+const nextBtn = document.getElementById("nextBtn");
+const counter = document.getElementById("questionCounter");
+const progressBar = document.getElementById("progressBar");
+
+const questions = [
+  { q:"What describes you best?", options:["Romantic 💕","Adventurous 🌍","Calm 🌊","Funny 😂"] },
+  { q:"Ideal date?", options:["Movies 🎬","Long walk 🚶‍♀️","Dinner 🍽️","Gaming 🎮"] },
+  { q:"What do you value most?", options:["Trust 🤝","Love ❤️","Communication 🗣️","Money 💰"] },
+  { q:"Your perfect weekend?", options:["Home 🏠","Travel ✈️","Party 🎉","Family 👨‍👩‍👧"] },
+  { q:"Morning or night?", options:["Morning ☀️","Night 🌙","Both ✨","Neither 😴"] }
+];
+
+let current = 0;
+const answers = [];
+let userPhotoURL = null;
+
+photoInput.onchange = () => {
+  if(photoInput.files && photoInput.files[0]){
+    userPhotoURL = URL.createObjectURL(photoInput.files[0]);
+    preview.src = userPhotoURL;
+    preview.style.display = "block";
+  }
+};
+
+startBtn.onclick = () => {
+  if(ageInput.value < 18){
+    ageWarning.textContent = "You must be 18 or above ❤️";
+    return;
+  }
+  if(bioInput.value.trim().length < 3){
+    alert("Please write a short bio 💕");
+    return;
+  }
+
+  setup.classList.remove("active");
+  questionsSec.classList.add("active");
+  loadQuestion();
+};
+
+function loadQuestion(){
+  nextBtn.disabled = true;
+  optionsDiv.innerHTML = "";
+
+  counter.textContent = `Question ${current + 1} of ${questions.length}`;
+  progressBar.style.width = ((current + 1) / questions.length) * 100 + "%";
+  questionText.textContent = questions[current].q;
+
+  questions[current].options.forEach(opt => {
+    const div = document.createElement("div");
+    div.className = "option";
+    div.textContent = opt;
+    div.onclick = () => {
+      answers[current] = opt;
+      document.querySelectorAll(".option").forEach(o => o.classList.remove("selected"));
+      div.classList.add("selected");
+      nextBtn.disabled = false;
+    };
+    optionsDiv.appendChild(div);
+  });
+}
+
+nextBtn.onclick = () => {
+  if(current < questions.length - 1){
+    current++;
+    loadQuestion();
+  } else {
+    questionsSec.classList.remove("active");
+    waiting.classList.add("active");
+    setTimeout(()=> alert("Congratulations! You've finished the quiz! 🎉\nYour perfect match is being found... 💕"), 2000);
+  }
+};
+
+// Falling hearts from top Cupid
+function shootHeart(){
+  const heart = document.createElement("div");
+  heart.classList.add("heart");
+  document.body.appendChild(heart);
+
+  const cupid = document.querySelector(".cupid");
+  const cupidRect = cupid.getBoundingClientRect();
+
+  heart.style.left = cupidRect.left + cupidRect.width/2 - 15 + "px";
+  heart.style.top = cupidRect.bottom + "px";
+
+  const x = (Math.random()-0.5) * 200;
+  const y = 300 + Math.random()*400;
+  heart.style.setProperty('--x', x + "px");
+  heart.style.setProperty('--y', y + "px");
+
+  setTimeout(() => heart.remove(), 5000);
+}
+
+setInterval(shootHeart, 400);
+
+// === SOUND EFFECTS FOR CUPID ANIMATION ===
+const shootSound = document.getElementById('shootSound');
+const whooshSound = document.getElementById('whooshSound');
+const impactSound = document.getElementById('impactSound');
+const sparkleSound = document.getElementById('sparkleSound');
+
+// Play sounds at specific times in the 12-second cycle
+function playAnimationSounds() {
+  // 40% ~ 4.8s: Aiming -> Shoot (bow twang / release)
+  setTimeout(() => {
+    shootSound.currentTime = 0;
+    shootSound.play();
+  }, 4800);
+
+  // 42% ~ 5s: Arrow starts flying (whoosh)
+  setTimeout(() => {
+    whooshSound.currentTime = 0;
+    whooshSound.play();
+  }, 5000);
+
+  // 72% ~ 8.6s: Heart pierced (impact + sparkle)
+  setTimeout(() => {
+    impactSound.currentTime = 0;
+    impactSound.play();
+    sparkleSound.currentTime = 0;
+    sparkleSound.play();
+  }, 8600);
+}
+
+// Start the sound loop (syncs with animation)
+playAnimationSounds();
+setInterval(playAnimationSounds, 12000);
+
+</script>
+</body>
+</html>
+
+
+
