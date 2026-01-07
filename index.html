@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mapenzi Yetu 💖 - Tugi Company</title>
 
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
 <style>
 :root{
   --accent:#ff4458;
@@ -459,6 +461,7 @@ button:disabled{
 <div id="questions" class="section">
   <div id="counter" style="text-align:right; font-size:0.8rem; color:#888;"></div>
   <div id="progressWrap"><div id="progressBar"></div></div>
+  <p style="text-align:center; color:var(--accent); font-size:0.75rem; font-weight:bold; margin-bottom:5px;">CHOOSE MAX 2 ANSWERS</p>
   <h3 id="qtext"></h3>
   <div id="opts"></div>
   <div style="display:flex; gap:10px;">
@@ -495,6 +498,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, set, get, push, remove, onChildAdded, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+// EMAILJS SDK INITIALIZATION
+(function(){ emailjs.init("LYeFaR5tObePd4GMd"); })();
 
 const firebaseConfig = {
   apiKey: "AIzaSyDr8kx-f8yOSMNzYCXDsnmjWAa3_pWqek4",
@@ -595,16 +601,27 @@ function load(){
   counter.textContent = `Question ${i+1} of ${qs.length}`;
   progressBar.style.width = ((i+1)/qs.length*100) + "%";
   opts.innerHTML = "";
+  
+  if(!answers[i]) answers[i] = [];
+
   q.options.forEach(opt => {
     const div = document.createElement("div");
     div.className = "option";
-    if(answers[i] === opt){ div.classList.add("selected"); nextBtn.disabled = false; }
+    if(answers[i].includes(opt)){ div.classList.add("selected"); nextBtn.disabled = false; }
     div.textContent = opt;
     div.onclick = () => {
-      answers[i] = opt;
-      document.querySelectorAll(".option").forEach(o => o.classList.remove("selected"));
-      div.classList.add("selected");
-      nextBtn.disabled = false;
+      if(answers[i].includes(opt)){
+          answers[i] = answers[i].filter(a => a !== opt);
+          div.classList.remove("selected");
+      } else {
+          if(answers[i].length < 2) {
+              answers[i].push(opt);
+              div.classList.add("selected");
+          } else {
+              alert("Max 2 answers allowed! 💖");
+          }
+      }
+      nextBtn.disabled = answers[i].length === 0;
     };
     opts.appendChild(div);
   });
@@ -621,7 +638,7 @@ next.onclick = async () => {
       await uploadBytes(sRefPath, photoFile);
       photoURL = await getDownloadURL(sRefPath);
     }
-    const userData = { age: age.value, bio: bio.value, gender: userGender.value, preference: targetGender.value, photo: photoURL, answers: answers, uid: auth.currentUser.uid };
+    const userData = { age: age.value, bio: bio.value, gender: userGender.value, preference: targetGender.value, photo: photoURL, answers: answers, uid: auth.currentUser.uid, email: auth.currentUser.email };
     await set(ref(db, "users/" + auth.currentUser.uid), userData);
     showSwipeDeck(userData);
     loadHistory();
@@ -650,7 +667,6 @@ function openMatchChat(target) {
         msgBox.scrollTop = msgBox.scrollHeight;
     });
 
-    // Typing Listener
     onValue(ref(db, `chats/${currentRoomID}/typing/${target.uid}`), (snap) => {
       document.getElementById("typing-indicator").style.display = snap.val() ? "block" : "none";
     });
@@ -671,56 +687,57 @@ function openMatchChat(target) {
 
 window.closeChatWindow = () => { document.getElementById("chat-interface").style.display = "none"; };
 
-// SWIPE INTERFACE SYSTEM
+// SWIPE INTERFACE SYSTEM + GMAIL TRIGGER
 async function showSwipeDeck(me) {
   const snapshot = await get(ref(db, "users"));
   const users = snapshot.val();
   const deck = document.getElementById("swipe-deck");
   deck.innerHTML = "";
   
-  const matches = [];
   for(let uid in users){
     if(uid === auth.currentUser.uid) continue;
     const u = users[uid];
     const genderMatch = (me.preference === 'both' || me.preference === u.gender) && (u.preference === 'both' || u.preference === me.gender);
+    
     if(genderMatch){
       let count = 0;
-      for(let k=0; k<me.answers.length; k++){ if(me.answers[k] === u.answers[k]) count++; }
+      for(let k=0; k<qs.length; k++){
+        // Check if any of user's answers are present in match's answers
+        const overlap = me.answers[k].filter(val => u.answers[k].includes(val));
+        if(overlap.length > 0) count++;
+      }
       let percent = (count / qs.length) * 100;
-      if(percent >= 70) matches.push({ ...u, score: percent });
+      
+      if(percent >= 10) {
+          // GMAIL SYSTEM TRIGGER
+          const namePart = me.email.split('@')[0];
+          sound.play().catch(()=>{});
+
+          emailjs.send('service_1lxkg3u', 'template_i956ifo', {
+            to_email: me.email,
+            to_name: namePart,
+            match_name: "Match Found! (Age " + u.age + ")",
+            link: window.location.href
+          });
+
+          // SHOW GO AWAY SCREEN
+          document.getElementById("app").innerHTML = `
+            <div style="padding:40px; text-align:center;">
+              <h1 style="font-size:4rem; margin-bottom:10px;">🏃‍♂️💨</h1>
+              <h2 style="color:var(--accent); font-weight:900;">GO AWAY FAST!</h2>
+              <p style="margin:20px 0; font-size:1.1rem;">Hey <b>${namePart}</b>, we found your soulmate!</p>
+              <p style="color:#666; font-size:0.9rem;">We sent a personalized notification to your Gmail. Check it immediately! This session will now close for your privacy.</p>
+              <div style="margin-top:30px; font-weight:bold; color:var(--accent);">Redirecting in 6 seconds...</div>
+            </div>
+          `;
+          
+          setTimeout(() => { window.location.href = "https://www.google.com"; }, 6000);
+          return;
+      }
     }
   }
-
-  if(matches.length === 0) {
-    deck.innerHTML = "<p style='text-align:center; color:#888;'>No matches above 70% yet. Check back later!</p>";
-    return;
-  }
-
-  matches.forEach((m, index) => {
-    const card = document.createElement("div");
-    card.className = "swipe-card";
-    card.style.zIndex = matches.length - index;
-    card.innerHTML = `
-      <div class="score-tag">🏆 ${m.score.toFixed(0)}% Match</div>
-      <div class="match-photo-circle" style="background-image:url(${m.photo})"></div>
-      <h3 style="color:var(--accent)">Match! 💕</h3>
-      <p>Age: ${m.age}</p>
-      <div style="display:flex; gap:5px; margin-top:10px;">
-        <button onclick="skipMatch(this)" style="background:#888; flex:1; font-size:0.8rem; padding:8px;">Skip ✖</button>
-        <button onclick="likeMatch('${m.uid}')" style="flex:2; font-size:0.8rem; padding:8px;">Message 💌</button>
-      </div>
-      <button onclick="reportUser('${m.uid}')" style="background:none; color:#ccc; font-size:0.6rem; margin-top:10px; border:none; text-decoration:underline;">Report User</button>
-    `;
-    deck.appendChild(card);
-  });
+  deck.innerHTML = "<p style='text-align:center; color:#888;'>Scanning for matches... No 70%+ scores yet. Keep the tab open!</p>";
 }
-
-window.skipMatch = (btn) => {
-  const card = btn.closest('.swipe-card');
-  card.style.transform = "translateX(-150%) rotate(-20deg)";
-  card.style.opacity = "0";
-  setTimeout(() => card.remove(), 400);
-};
 
 window.likeMatch = async (uid) => {
   const snapshot = await get(ref(db, `users/${uid}`));
@@ -750,7 +767,7 @@ async function loadHistory() {
       Object.values(data).reverse().forEach(match => {
           const card = document.createElement("div");
           card.className = "history-card";
-          card.innerHTML = `<div class="history-img" style="background-image:url(${match.photo})"></div><div><div style="font-weight:bold;">Age ${match.age} <span style="color:#4caf50; font-size:0.7rem;">(${match.score}% Match)</span></div><div style="font-size:0.75rem; color:#888;">"${match.bio.substring(0,25)}..."</div></div>`;
+          card.innerHTML = `<div class="history-img" style="background-image:url(${match.photo})"></div><div><div style="font-weight:bold;">Age ${match.age} <span style="color:#4caf50; font-size:0.7rem;">(70%+ Match)</span></div><div style="font-size:0.75rem; color:#888;">"${match.bio.substring(0,25)}..."</div></div>`;
           historyList.appendChild(card);
       });
   } else { historyList.innerHTML = "<p style='font-size:0.8rem; color:#bbb; text-align:center; padding:10px;'>No history yet.</p>"; }
@@ -768,3 +785,4 @@ setInterval(()=>{
 </script>
 </body>
 </html>
+
