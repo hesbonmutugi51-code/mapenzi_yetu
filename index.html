@@ -497,7 +497,6 @@ button:disabled{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, get, push, remove, onChildAdded, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // EMAILJS SDK INITIALIZATION
 (function(){ emailjs.init("LYeFaR5tObePd4GMd"); })();
@@ -505,17 +504,21 @@ import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://ww
 const firebaseConfig = {
   apiKey: "AIzaSyDr8kx-f8yOSMNzYCXDsnmjWAa3_pWqek4",
   authDomain: "mapenziyetu-61fa8.firebaseapp.com",
-  databaseURL: "https://mapenziyetu-61fa8-default-rtdb.firebaseio.com",
+  // FIXED REGION TO ASIA
+  databaseURL: "https://mapenziyetu-61fa8-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "mapenziyetu-61fa8",
   storageBucket: "mapenziyetu-61fa8.appspot.com",
   messagingSenderId: "291837171820",
   appId: "1:291837171820:web:77cd8bb29eac82651ba049"
 };
 
+// CLOUDINARY CONFIG - FIXED URL AND PRESET
+const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dik4lhwxh/image/upload';
+const CLOUDINARY_PRESET = 'tugi_presets';
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
-const storage = getStorage(app);
 const sound = document.getElementById("matchSound");
 
 const loginSection = document.getElementById("login");
@@ -632,12 +635,28 @@ next.onclick = async () => {
   else {
     questionsSection.classList.remove("active");
     waitingSection.classList.add("active");
+    
+    // CLOUDINARY UPLOAD LOGIC
     let photoURL = "https://img.icons8.com/emoji/96/person-emoji.png";
     if(photoFile){
-      const sRefPath = sRef(storage, `users/${auth.currentUser.uid}/profile.jpg`);
-      await uploadBytes(sRefPath, photoFile);
-      photoURL = await getDownloadURL(sRefPath);
+      try {
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        formData.append('upload_preset', CLOUDINARY_PRESET);
+
+        const response = await fetch(CLOUDINARY_URL, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        photoURL = data.secure_url;
+      } catch (err) {
+        console.error("Photo upload error:", err);
+      }
     }
+
     const userData = { age: age.value, bio: bio.value, gender: userGender.value, preference: targetGender.value, photo: photoURL, answers: answers, uid: auth.currentUser.uid, email: auth.currentUser.email };
     await set(ref(db, "users/" + auth.currentUser.uid), userData);
     showSwipeDeck(userData);
@@ -647,7 +666,7 @@ next.onclick = async () => {
 
 backBtn.onclick = () => { if(i > 0){ i--; load(); } };
 
-// CHAT FUNCTIONS WITH TYPING INDICATOR
+// CHAT FUNCTIONS
 function openMatchChat(target) {
     currentTargetId = target.uid;
     const chatInt = document.getElementById("chat-interface");
@@ -687,7 +706,7 @@ function openMatchChat(target) {
 
 window.closeChatWindow = () => { document.getElementById("chat-interface").style.display = "none"; };
 
-// SWIPE INTERFACE SYSTEM + GMAIL TRIGGER
+// SWIPE & MATCH LOGIC
 async function showSwipeDeck(me) {
   const snapshot = await get(ref(db, "users"));
   const users = snapshot.val();
@@ -702,14 +721,13 @@ async function showSwipeDeck(me) {
     if(genderMatch){
       let count = 0;
       for(let k=0; k<qs.length; k++){
-        // Check if any of user's answers are present in match's answers
         const overlap = me.answers[k].filter(val => u.answers[k].includes(val));
         if(overlap.length > 0) count++;
       }
       let percent = (count / qs.length) * 100;
       
-      if(percent >= 10) {
-          // GMAIL SYSTEM TRIGGER
+      // Match found logic
+      if(percent >=  0) {
           const namePart = me.email.split('@')[0];
           sound.play().catch(()=>{});
 
@@ -720,13 +738,12 @@ async function showSwipeDeck(me) {
             link: window.location.href
           });
 
-          // SHOW GO AWAY SCREEN
           document.getElementById("app").innerHTML = `
             <div style="padding:40px; text-align:center;">
               <h1 style="font-size:4rem; margin-bottom:10px;">🏃‍♂️💨</h1>
               <h2 style="color:var(--accent); font-weight:900;">GO AWAY FAST!</h2>
               <p style="margin:20px 0; font-size:1.1rem;">Hey <b>${namePart}</b>, we found your soulmate!</p>
-              <p style="color:#666; font-size:0.9rem;">We sent a personalized notification to your Gmail. Check it immediately! This session will now close for your privacy.</p>
+              <p style="color:#666; font-size:0.9rem;">We sent a notification to your Gmail. Session closing for privacy.</p>
               <div style="margin-top:30px; font-weight:bold; color:var(--accent);">Redirecting in 6 seconds...</div>
             </div>
           `;
@@ -736,7 +753,7 @@ async function showSwipeDeck(me) {
       }
     }
   }
-  deck.innerHTML = "<p style='text-align:center; color:#888;'>Scanning for matches... No 70%+ scores yet. Keep the tab open!</p>";
+  deck.innerHTML = "<p style='text-align:center; color:#888;'>Scanning... No high scores yet. Stay online!</p>";
 }
 
 window.likeMatch = async (uid) => {
@@ -747,11 +764,11 @@ window.likeMatch = async (uid) => {
   openMatchChat(match);
 };
 
-// REPORT & BLOCK SYSTEM
+// REPORT & BLOCK
 window.reportUser = (uid) => {
-  if(confirm("Report and block this user? They will no longer appear in your matches.")){
+  if(confirm("Report and block this user?")){
     push(ref(db, `reports`), { reportedBy: auth.currentUser.uid, reportedUser: uid, timestamp: Date.now() });
-    alert("User reported and blocked. Our safety team will review this account.");
+    alert("User reported.");
     location.reload();
   }
 };
@@ -767,14 +784,14 @@ async function loadHistory() {
       Object.values(data).reverse().forEach(match => {
           const card = document.createElement("div");
           card.className = "history-card";
-          card.innerHTML = `<div class="history-img" style="background-image:url(${match.photo})"></div><div><div style="font-weight:bold;">Age ${match.age} <span style="color:#4caf50; font-size:0.7rem;">(70%+ Match)</span></div><div style="font-size:0.75rem; color:#888;">"${match.bio.substring(0,25)}..."</div></div>`;
+          card.innerHTML = `<div class="history-img" style="background-image:url(${match.photo})"></div><div><div style="font-weight:bold;">Age ${match.age}</div><div style="font-size:0.75rem; color:#888;">"${match.bio.substring(0,25)}..."</div></div>`;
           historyList.appendChild(card);
       });
-  } else { historyList.innerHTML = "<p style='font-size:0.8rem; color:#bbb; text-align:center; padding:10px;'>No history yet.</p>"; }
+  } else { historyList.innerHTML = "<p style='font-size:0.8rem; color:#bbb; text-align:center;'>No history.</p>"; }
 }
 
 clearHistoryBtn.onclick = async () => {
-  if(confirm("Are you sure you want to clear your match history?")) { await remove(ref(db, `history/${auth.currentUser.uid}`)); loadHistory(); }
+  if(confirm("Clear history?")) { await remove(ref(db, `history/${auth.currentUser.uid}`)); loadHistory(); }
 };
 
 setInterval(()=>{
